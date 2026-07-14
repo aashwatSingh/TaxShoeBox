@@ -1,0 +1,67 @@
+# Supabase CLI configuration.
+# Quick start with the CLI:
+#   supabase login
+#   supabase link --project-ref <your-project-ref>
+#   supabase db push          # applies everything in supabase/migrations/
+#
+# (Or skip the CLI entirely and paste supabase/schema.sql into the
+#  Supabase Studio SQL Editor — same result.)
+
+project_id = "taxshoe"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[studio]
+enabled = true
+port = 54323
+
+# ── Authentication (server-side enforcement) ────────────────────────
+# These are the AUTHORITATIVE auth rules — enforced by Supabase Auth
+# (GoTrue) on the server, independent of anything the browser does.
+# The frontend's password check is only for fast UX feedback.
+#
+# NOTE: `supabase db push` does NOT push auth settings to a cloud project;
+# these apply to local `supabase start`. For a cloud project, mirror them
+# in Dashboard → Authentication (see DEPLOYMENT.md checklist).
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600                       # short-lived access tokens
+enable_refresh_token_rotation = true    # rotate refresh tokens on use
+refresh_token_reuse_interval = 10       # detect stolen/replayed tokens
+enable_signup = true
+# Server-side password policy — enforced even for direct API calls that
+# bypass the frontend. 8+ chars with mixed case and digits.
+minimum_password_length = 8
+password_requirements = "lower_upper_letters_digits"
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true             # require verified email before login
+max_frequency = "1m0s"                  # throttle confirmation/reset emails
+
+# Server-side rate limiting — brute-force / abuse protection at the auth layer.
+[auth.rate_limit]
+email_sent = 10                         # emails per hour per project
+sign_in_sign_ups = 30                   # sign-in/up attempts per 5 min per IP
+token_refresh = 150                     # token refreshes per 5 min per IP
+
+[storage]
+enabled = true
+file_size_limit = "10MiB"
+
+[storage.buckets.receipts]
+public = false
+file_size_limit = "10MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp", "image/heic", "application/pdf"]

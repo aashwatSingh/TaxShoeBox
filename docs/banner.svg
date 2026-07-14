@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" role="img" aria-label="TaxShoe — Effortless Tax Organization">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%"  stop-color="#050510"/>
+      <stop offset="30%" stop-color="#0d0927"/>
+      <stop offset="55%" stop-color="#1a0f3a"/>
+      <stop offset="80%" stop-color="#0f1a40"/>
+      <stop offset="100%" stop-color="#080f2e"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#fcd34d"/>
+      <stop offset="50%"  stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d4a843"/>
+    </linearGradient>
+    <radialGradient id="orb1" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6d28d9" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#6d28d9" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#d4a843" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#d4a843" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="320" fill="url(#bg)"/>
+  <circle cx="150" cy="60"  r="220" fill="url(#orb1)"/>
+  <circle cx="1080" cy="280" r="260" fill="url(#orb2)"/>
+  <circle cx="650" cy="40"  r="160" fill="url(#orb1)"/>
+
+  <text x="600" y="120" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="92" font-weight="700" fill="url(#gold)">TaxShoe</text>
+  <text x="600" y="175" text-anchor="middle" font-family="-apple-system, 'Segoe UI', sans-serif" font-size="24" fill="#a9a3c2" letter-spacing="2">Effortless Tax Organization</text>
+
+  <g font-family="-apple-system, 'Segoe UI', sans-serif" font-size="15" fill="#8d87ad">
+    <rect x="285" y="215" rx="17" ry="17" width="190" height="34" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+    <text x="380" y="237" text-anchor="middle">🔐 Row-Level Security</text>
+    <rect x="495" y="215" rx="17" ry="17" width="170" height="34" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+    <text x="580" y="237" text-anchor="middle">⚛️ React + Supabase</text>
+    <rect x="685" y="215" rx="17" ry="17" width="230" height="34" fill="#ffffff" fill-opacity="0.05" stroke="#ffffff" stroke-opacity="0.1"/>
+    <text x="800" y="237" text-anchor="middle">✨ Light &amp; Dark · Animated</text>
+  </g>
+</svg>

@@ -1,0 +1,5 @@
+# SPA fallback — serve index.html for any path so client-side routing
+# (e.g. /items) works on direct load or refresh. Used by Netlify and
+# Cloudflare Pages. Static assets are served first; this only catches
+# routes that don't map to a real file.
+/*    /index.html   200

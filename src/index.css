@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ------------------------------------------------------------------ */
+/* Design tokens                                                         */
+/* A small, deliberate scale — not a different opacity value per         */
+/* component. Everything in the app pulls from these.                    */
+/* ------------------------------------------------------------------ */
+@layer base {
+  :root {
+    --bg-base: #fafafa;
+    --bg-subtle: #f4f3f1;
+
+    --surface: 255 255 255;
+    --surface-alpha: 1;
+    --surface-hover-alpha: 1;
+    --border-alpha: 0.08;
+    --border-hover-alpha: 0.16;
+
+    --text-primary: #18181b;
+    --text-secondary: #6b6b74;
+    --text-tertiary: #9c9ca3;
+
+    --accent: 185 122 15;      /* amber-700, readable on light surfaces */
+    --accent-contrast: 255 255 255;
+
+    --shadow-color: 0 0 0;
+  }
+
+  .dark {
+    --bg-base: #0b0b0f;
+    --bg-subtle: #101018;
+
+    --surface: 255 255 255;
+    --surface-alpha: 0.04;
+    --surface-hover-alpha: 0.07;
+    --border-alpha: 0.08;
+    --border-hover-alpha: 0.16;
+
+    --text-primary: #f4f4f5;
+    --text-secondary: rgba(244, 244, 245, 0.62);
+    --text-tertiary: rgba(244, 244, 245, 0.38);
+
+    --accent: 240 180 41;      /* amber-400, readable on dark surfaces */
+    --accent-contrast: 24 20 8;
+
+    --shadow-color: 0 0 0;
+  }
+
+  * { box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar       { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb {
+    background: rgb(var(--accent) / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--accent) / 0.55); }
+}
+
+/* ------------------------------------------------------------------ */
+/* App background — static, no animation. A very subtle two-tone         */
+/* gradient reads as intentional; a shifting one reads as a demo.        */
+/* ------------------------------------------------------------------ */
+.bg-app {
+  background: radial-gradient(ellipse 1200px 700px at 15% -10%, var(--bg-subtle), transparent),
+              radial-gradient(ellipse 1000px 800px at 100% 100%, var(--bg-subtle), transparent),
+              var(--bg-base);
+}
+
+/* ------------------------------------------------------------------ */
+/* Component layer                                                       */
+/* ------------------------------------------------------------------ */
+@layer components {
+  /* Card surface — the one card treatment used everywhere. */
+  .surface {
+    background-color: rgb(var(--surface) / var(--surface-alpha));
+    border: 1px solid rgb(var(--text-primary) / var(--border-alpha));
+    @apply rounded-xl;
+  }
+  .surface-hover {
+    @apply transition-colors duration-150;
+  }
+  .surface-hover:hover {
+    background-color: rgb(var(--surface) / var(--surface-hover-alpha));
+    border-color: rgb(var(--text-primary) / var(--border-hover-alpha));
+  }
+
+  /* Elevated surface — modals only. */
+  .surface-raised {
+    @apply bg-white dark:bg-[#15151d] border border-black/[0.06] dark:border-white/[0.08] rounded-2xl
+           shadow-xl shadow-black/[0.08] dark:shadow-black/40;
+  }
+
+  /* Accent text — used only on key figures / the wordmark, never body copy. */
+  .text-accent {
+    color: rgb(var(--accent));
+  }
+
+  /* Buttons */
+  .btn-primary {
+    background-color: rgb(var(--accent));
+    color: rgb(var(--accent-contrast));
+    @apply font-semibold px-4 py-2.5 rounded-lg text-sm
+           shadow-sm
+           transition-[transform,filter] duration-150 ease-out
+           hover:brightness-110 active:brightness-95 active:scale-[0.98]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+           focus-visible:ring-offset-transparent;
+  }
+  .dark .btn-primary { --tw-ring-color: rgb(var(--accent) / 0.5); }
+  .btn-primary { --tw-ring-color: rgb(var(--accent) / 0.4); }
+
+  .btn-ghost {
+    @apply bg-black/[0.03] hover:bg-black/[0.06] dark:bg-white/[0.05] dark:hover:bg-white/[0.09]
+           border border-black/[0.08] hover:border-black/[0.14] dark:border-white/[0.08] dark:hover:border-white/[0.14]
+           text-zinc-600 hover:text-zinc-900 dark:text-white/70 dark:hover:text-white
+           font-medium px-4 py-2.5 rounded-lg text-sm
+           transition-colors duration-150 active:scale-[0.98]
+           focus:outline-none focus-visible:ring-2 focus-visible:ring-black/10 dark:focus-visible:ring-white/20;
+  }
+
+  /* Form inputs */
+  .input {
+    @apply bg-black/[0.02] dark:bg-white/[0.04] border border-black/[0.1] dark:border-white/[0.1] rounded-lg
+           px-3.5 py-2.5 text-sm w-full
+           text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-white/30
+           transition-colors duration-150
+           focus:outline-none focus:border-black/25 dark:focus:border-white/25;
+  }
+  .dark .input:focus { border-color: rgb(var(--accent) / 0.55); }
+  .input:focus { border-color: rgb(var(--accent) / 0.55); }
+
+  .select {
+    @apply input appearance-none cursor-pointer pr-9;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium;
+  }
+}
+
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position: 200% 0;  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg,
+    rgb(var(--text-primary) / 0.04) 25%,
+    rgb(var(--text-primary) / 0.08) 50%,
+    rgb(var(--text-primary) / 0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+  border-radius: 0.5rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
