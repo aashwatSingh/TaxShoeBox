@@ -1,151 +1,81 @@
-# 🗂️ TaxShoe
+# TaxShoeBox
 
-**Effortless tax organization.** A sleek, full-stack web app for capturing,
-categorizing, and reviewing tax documents — receipts, income, deductions —
-all secured per-user and built to scale.
+TaxShoeBox is a solo-built expense tracker for freelancers gathering receipts for Schedule C. Attach a receipt to an expense, assign a category, and review the year’s totals in one place.
 
-![TaxShoe](./docs/banner.svg)
+## Try it locally
 
-> Live demo: **https://taxshoe.app** — click **"Explore the demo"** on the
-> login screen to try everything instantly, no account needed.
+Use Node.js 20, the version in [`.nvmrc`](.nvmrc). The browser demo runs with sample data and no credentials.
 
----
-
-## ✨ Features
-
-- 🧪 **One-click demo mode** — explore the full app with realistic sample
-  data, no account or backend required (entirely client-side, per-tab)
-- 🔐 **Email/password auth** with secure PKCE flow
-- 📎 **Receipt uploads** — attach images/PDFs to any item, stored in a
-  private Supabase Storage bucket with per-user access and signed URLs
-- 📊 **Dashboard** with live, server-aggregated yearly totals
-  (expenses · income · deductions · pending review)
-- 🧾 **Tax items** — title, amount, category, date, type, status, tags
-- 🔎 **Search & filter** by year, type, category, and full-text title/description
-- 🏷️ **Auto-seeded categories** created for every new user
-- 🌗 **Light / dark mode** toggle with system-preference detection
-- 🎬 **Polished UX** — gradient backgrounds, scroll-triggered fade-ins,
-  spring-physics interactions
-- 📱 Fully responsive
-
----
-
-## 🛠️ Tech stack
-
-| Layer | Tech |
-|---|---|
-| **Frontend** | React 18, Vite, React Router |
-| **Styling** | Tailwind CSS, custom gradient/animation system |
-| **Animation** | Framer Motion + IntersectionObserver |
-| **Backend** | Supabase (PostgreSQL, Auth, PostgREST) |
-| **Security** | Row Level Security, CSP headers, input validation |
-| **Icons / UX** | lucide-react, react-hot-toast, date-fns |
-
----
-
-## 🔒 Security highlights
-
-This was built security-first — see **[SECURITY.md](./SECURITY.md)** for the
-full write-up. The short version:
-
-- **Row Level Security (FORCE RLS)** on every table — a user can *only* ever
-  touch rows where `auth.uid() = user_id`, enforced even for privileged roles.
-- **`anon` role revoked** from all tables; a signed JWT is required for any access.
-- **SQL injection is structurally impossible** — all queries go through
-  PostgREST's parameterized layer; the single dynamic search filter is sanitized.
-- **service_role key guard** — the app refuses to boot if the RLS-bypassing key
-  is ever placed in a client-side variable.
-- **Defense in depth** — app-layer validators (UUID, enum, finite-number, year,
-  tag-length) backed by database `CHECK` constraints and typed enums.
-- **Hardened headers** — CSP, `X-Frame-Options`, `X-Content-Type-Options`,
-  `Referrer-Policy`, `Permissions-Policy`.
-- **Rate limiting** (client + per-role `statement_timeout`) and safe,
-  non-leaking error messages.
-
----
-
-## 📈 Built to scale
-
-- **Server-side aggregation** — dashboard totals computed in Postgres
-  (`get_tax_summary` RPC); one small row crosses the wire regardless of item count.
-- **Composite indexes** leading with `user_id` to match the RLS predicate,
-  plus `pg_trgm` and GIN indexes for fast search and tag lookups.
-- **Code-splitting** — vendor bundles cached independently (app chunk ~90 kB gzip 26 kB).
-- **Range-based pagination** on all list queries.
-
----
-
-## 🚀 Getting started
-
-> **No Supabase yet?** Just `npm install && npm run dev` and click
-> **"Explore the demo"** — the app runs fully client-side with sample data.
-
-### Prerequisites
-- Node.js 18+
-- A free [Supabase](https://supabase.com) project (only for real accounts)
-
-### 1. Install
-```bash
-git clone <your-repo-url>
-cd taxshoe
-npm install
+```sh
+git clone https://github.com/aashwatSingh/TaxShoeBox.git
+cd TaxShoeBox
+npm ci
+npm run dev
 ```
 
-### 2. Configure environment
-```bash
-cp .env.example .env
-```
-Fill in your project values from **Supabase → Settings → API**:
-```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-public-key
-```
-> Only the **anon (public)** key — never the `service_role` key (the app will
-> refuse to start if you do).
+Open the local address printed in the terminal and choose **Explore the demo**. Note the current year’s expense total, add an expense for that year, and return to the dashboard. The total should increase by the amount you entered. Demo edits stay in the browser tab.
 
-### 3. Set up the database
-Open **Supabase → SQL Editor**, paste the contents of
-[`supabase/schema.sql`](./supabase/schema.sql), and run it. This creates the
-tables, RLS policies, indexes, the summary function, and the new-user trigger.
+## Architecture
 
-### 4. Run
-```bash
-npm run dev      # start dev server
-npm run build    # production build
-npm run preview  # preview the production build
+On `main`, React sends signed-in requests to Supabase. PostgreSQL checks row ownership and computes yearly totals with `get_tax_summary`. Receipt files live in a private bucket with per-user access policies. [Tax item queries](src/services/taxService.js) · [Receipt handling](src/services/storageService.js) · [SQL schema](supabase/schema.sql)
+
+```mermaid
+flowchart LR
+    client["React client"] -->|Demo| sample["Per-tab sample data"]
+    client -->|Signed-in requests| api["Supabase"]
+    api -->|Items and yearly totals| rows[("PostgreSQL with RLS")]
+    api -->|Receipt uploads| files["Private receipt bucket"]
 ```
 
----
+<details>
+<summary>Design sketch for automatic categorization</summary>
 
-## 🗂️ Project structure
+The public app lets the user pick a category. This design sketch shows how an automatic first suggestion could fit into that workflow.
 
-```
-taxshoe/
-├── config/
-│   └── supabase.js          # Client init + service_role guard (keys isolated here)
-├── supabase/
-│   ├── schema.sql           # Tables, RLS, indexes, RPC, triggers (one-paste setup)
-│   └── migrations/          # Same schema as ordered CLI migrations
-├── src/
-│   ├── components/          # Auth, Dashboard, TaxItems, Layout, UI
-│   ├── context/             # Auth + Theme providers
-│   ├── hooks/               # Data-fetching hooks
-│   ├── services/            # taxService + storageService — all data access
-│   ├── demo/                # Client-side demo sandbox
-│   └── utils/               # Safe error normalization
-├── public/_headers          # Production security headers
-├── docs/ARCHITECTURE.md     # Code documentation — architecture & data flow
-├── SECURITY.md              # Full security & scalability write-up
-├── DEPLOYMENT.md            # Go-live walkthrough
-└── README.md
+```mermaid
+flowchart TD
+    client["React client"] --> edge["Supabase Edge Functions"]
+    subgraph cache["Cascading categorization cache"]
+        personal{"User override?"}
+        vendor{"Shared vendor match?"}
+        model["Claude API"]
+        personal -->|Miss| vendor
+        vendor -->|Miss| model
+    end
+    edge --> personal
+    personal -->|Hit| db[("PostgreSQL with RLS")]
+    vendor -->|Hit| db
+    model -->|Suggested category| db
 ```
 
-📖 **New to the codebase?** Start with
-[docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — a full walkthrough of the
-architecture, data flow, database schema, and design system.
+</details>
 
----
+## Key engineering decisions and trade-offs
 
-## 📄 License
+- **Give a correction precedence.** In the proposed cache, a user’s category would win even when the shared vendor entry disagrees. A shared hit would save a model call. An unfamiliar vendor would incur both lookups and a Claude request. Vendors that sell several kinds of goods are the reason to keep a personal override.
+- **Put ownership in PostgreSQL.** Policies check `auth.uid() = user_id` for tax items and categories. An omitted user filter in a signed-in client query still leaves those policies in force. Receipts need a separate policy because their file paths live in storage. [Table policies](supabase/migrations/20260628120000_init.sql) · [Receipt policies](supabase/migrations/20260628120100_receipts_storage.sql)
+- **Make schema changes replayable.** Two timestamped migrations define the setup order. The first creates the tables, policies, and summary function. The second configures receipt storage. Keeping that order in Git makes a fresh database reproducible and lets reviewers spot a change that depends on a manual edit.
 
-MIT — feel free to learn from it.
+## Tech stack
+
+JavaScript and React in the browser. Supabase provides authentication, receipt storage, and PostgreSQL.
+
+## Connect a development database
+
+1. Create a development Supabase project. In its SQL Editor, run the [initial migration](supabase/migrations/20260628120000_init.sql), followed by the [receipt storage migration](supabase/migrations/20260628120100_receipts_storage.sql).
+2. Copy the root [`.env.example`](.env.example) to `.env`. Set the project URL and its public anon key. Both values reach the browser.
+3. Restart `npm run dev`, create an account, complete the email confirmation if prompted, and sign in. Add an expense and attach a receipt. A second account should see its own records.
+
+### `.env.example`
+
+```dotenv
+# Leave both values blank for the browser demo.
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
+```
+
+## Screenshots / demo GIF
+
+The local demo includes sample expenses and receipts. Choose **Explore the demo** on the sign-in screen.
+
+<!-- Demo GIF placeholder. Replace this comment with a recording of a sample expense, its attached receipt, and the change in yearly expenses. -->
