@@ -3,6 +3,7 @@ import { MotionConfig } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import { AuthPage } from './components/Auth/AuthPage'
+import { Landing } from './components/Landing/Landing'
 import { Layout } from './components/Layout/Layout'
 import { Dashboard } from './components/Dashboard/Dashboard'
 import { TaxItemList } from './components/TaxItems/TaxItemList'
@@ -13,7 +14,7 @@ import { usePointerLight } from './hooks/usePointerLight'
 function ProtectedLayout() {
   const { user, loading } = useAuth()
   if (loading) return <FullPageLoader />
-  if (!user)   return <Navigate to="/auth" replace />
+  if (!user)   return <Navigate to="/welcome" replace />
   return <Layout />
 }
 
@@ -26,7 +27,9 @@ function AppShell() {
       <PixelField />
       {loading ? <FullPageLoader /> : (
         <Routes>
-          <Route path="/auth" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+          <Route path="/welcome" element={user ? <Navigate to="/" replace /> : <Landing />} />
+          <Route path="/signin" element={user ? <Navigate to="/" replace /> : <AuthPage />} />
+          <Route path="/auth" element={<Navigate to="/signin" replace />} />
           <Route element={<ProtectedLayout />}>
             <Route path="/" element={<Dashboard />} />
             <Route path="/items" element={<TaxItemList />} />

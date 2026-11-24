@@ -23,6 +23,8 @@ all secured per-user and built to scale.
 - 🧾 **Tax items** — title, amount, category, date, type, status, tags
 - 🔎 **Search & filter** by year, type, category, and full-text title/description
 - 🏷️ **Auto-seeded categories** created for every new user
+- 🧾 **Landing page that lets you try before anything else** (`/welcome`): log a line in a working ledger, watch the totals move, and open the demo with your own entries already in it
+- ✅ **First-run checklist** in the demo (log → verify → find deductions) and **undo** instead of confirm dialogs on delete
 - 🖤 **Matte-black interface**: wide Archivo display type, pointer-lit outlines, sliding page transitions, and an interactive pixel field that leans away from the cursor and ripples where you click or tap (still under `prefers-reduced-motion`)
 - 🎬 **Polished UX** — gradient backgrounds, scroll-triggered fade-ins,
   spring-physics interactions

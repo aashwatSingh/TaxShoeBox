@@ -8,6 +8,7 @@ import { useTaxSummary, useTaxItems } from '../../hooks/useTaxItems'
 import { TaxItemForm } from '../TaxItems/TaxItemForm'
 import { Counter, YearStepper, TypeChip, Ticks } from '../UI/Primitives'
 import { money, typeMeta } from '../../utils/format'
+import { DemoChecklist } from './DemoChecklist'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)
@@ -179,11 +180,14 @@ function Recent({ items, loading, year, onAdd }) {
 }
 
 export function Dashboard() {
-  const { user }  = useAuth()
+  const { user, isDemo } = useAuth()
   const [year, setYear] = useState(CURRENT_YEAR)
   const [showForm, setShowForm] = useState(false)
-  const { summary, loading: sLoading } = useTaxSummary(year)
-  const { items, loading: iLoading, createItem } = useTaxItems({ taxYear: year, pageSize: 6 })
+  const [verifying, setVerifying] = useState(null)
+  const { items, loading: iLoading, createItem, updateItem } = useTaxItems({ taxYear: year, pageSize: 6 })
+  const fingerprint = items.map((i) => `${i.id}:${i.amount}:${i.item_type}:${i.status}:${i.tax_year}`).join('|')
+  const { summary, loading: sLoading } = useTaxSummary(year, fingerprint)
+  const firstPending = items.find((i) => i.status === 'pending')
   const name = user?.isDemo ? 'Explorer' : user?.email?.split('@')[0] ?? 'there'
 
   return (
@@ -201,6 +205,14 @@ export function Dashboard() {
         </div>
       </header>
 
+      {isDemo && (
+        <DemoChecklist
+          onAdd={() => setShowForm(true)}
+          canVerify={Boolean(firstPending)}
+          onVerify={() => setVerifying({ ...firstPending, status: 'verified' })}
+        />
+      )}
+
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
         <Ledger summary={summary} year={year} loading={sLoading} />
         <ReviewMeter summary={summary} loading={sLoading} />
@@ -217,6 +229,17 @@ export function Dashboard() {
             return { error }
           }}
           defaultYear={year}
+        />
+      )}
+      {verifying && (
+        <TaxItemForm
+          item={verifying}
+          onClose={() => setVerifying(null)}
+          onSave={async (data) => {
+            const { error } = await updateItem(verifying.id, data)
+            if (!error) setVerifying(null)
+            return { error }
+          }}
         />
       )}
     </div>

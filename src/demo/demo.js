@@ -28,9 +28,11 @@ export function enterDemo() {
 }
 
 export function exitDemo() {
+  items = null // drop the in-memory copy too, so a new demo starts from the seed
   try {
     sessionStorage.removeItem(FLAG_KEY)
     sessionStorage.removeItem(DATA_KEY)
+    sessionStorage.removeItem('taxshoe-demo-progress')
   } catch { /* storage blocked */ }
 }
 

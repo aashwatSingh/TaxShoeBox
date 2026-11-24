@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Plus, Search, X, ChevronDown } from 'lucide-react'
+import toast from 'react-hot-toast'
+import { progress } from '../../demo/progress'
 import { useTaxItems, useCategories } from '../../hooks/useTaxItems'
 import { TaxItemCard } from './TaxItemCard'
 import { TaxItemForm } from './TaxItemForm'
@@ -37,9 +40,11 @@ export function TaxItemList() {
   const { categories } = useCategories()
   const [search, setSearch] = useState('')
   const [year, setYear] = useState(CURRENT_YEAR)
-  const [type, setType] = useState('')
+  const [params] = useSearchParams()
+  const [type, setType] = useState(() => (TYPES.some((t) => t.value && t.value === params.get('type')) ? params.get('type') : ''))
   const [catId, setCatId] = useState('')
   const [editItem, setEditItem] = useState(null)
+  useEffect(() => { if (type === 'deduction') progress.mark('filter') }, [type])
   const [showForm, setShowForm] = useState(false)
   const searchRef = useRef(null)
   const query = useDebounced(search, 180)
@@ -62,9 +67,32 @@ export function TaxItemList() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
-  const handleDelete = async (item) => {
-    if (window.confirm(`Delete “${item.title}”? This cannot be undone.`)) await deleteItem(item)
+  // Delete with undo instead of a blocking confirm: the entry disappears at
+  // once and is only removed for real when the 5-second undo window closes.
+  const [hidden, setHidden] = useState(() => new Set())
+  const unhide = (id) => setHidden((h) => { const n = new Set(h); n.delete(id); return n })
+  const handleDelete = (item) => {
+    setHidden((h) => new Set(h).add(item.id))
+    let undone = false
+    const timer = setTimeout(async () => {
+      if (undone) return
+      await deleteItem(item, { quiet: true })
+      unhide(item.id)
+    }, 5000)
+    toast((t) => (
+      <span className="flex items-center gap-3">
+        <span>Deleted <span className="text-ink">“{item.title.length > 28 ? item.title.slice(0, 28) + '…' : item.title}”</span></span>
+        <button
+          onClick={() => { undone = true; clearTimeout(timer); unhide(item.id); toast.dismiss(t.id) }}
+          className="rounded-md border border-signal/40 px-2 py-0.5 text-[12px] font-semibold text-signal hover:bg-signal/10"
+        >
+          Undo
+        </button>
+      </span>
+    ), { duration: 5000 })
   }
+  const visible = items.filter((i) => !hidden.has(i.id))
+  const shownCount = Math.max(0, count - hidden.size)
 
   const handleSave = async (data) => {
     // Close only on success, so a failed save keeps the user's input and
@@ -87,7 +115,7 @@ export function TaxItemList() {
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-sm text-muted">
-            <span className="figure text-ink">{count}</span> entr{count === 1 ? 'y' : 'ies'}{year ? ` in ${year}` : ' across all years'}
+            <span className="figure text-ink">{shownCount}</span> entr{shownCount === 1 ? 'y' : 'ies'}{year ? ` in ${year}` : ' across all years'}
           </p>
           <h1 className="display mt-2 text-[clamp(1.9rem,4.4vw,2.75rem)] text-ink">Ledger</h1>
         </div>
@@ -162,7 +190,7 @@ export function TaxItemList() {
         </div>
       </section>
 
-      {loading && items.length === 0 ? (
+      {loading && visible.length === 0 ? (
         <div className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))]">
           {[0, 1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="panel space-y-3 p-5">
@@ -170,7 +198,7 @@ export function TaxItemList() {
             </div>
           ))}
         </div>
-      ) : items.length === 0 ? (
+      ) : visible.length === 0 ? (
         <div className="panel px-6 py-14 text-center">
           <p className="display text-xl text-ink">{hasFilters ? 'No entries match' : 'The ledger is empty'}</p>
           <p className="mx-auto mt-2 max-w-[42ch] text-sm text-muted">
@@ -183,7 +211,7 @@ export function TaxItemList() {
       ) : (
         <motion.div layout className="grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr))]">
           <AnimatePresence mode="popLayout">
-            {items.map((item, i) => (
+            {visible.map((item, i) => (
               <TaxItemCard key={item.id} item={item} index={i} onEdit={setEditItem} onDelete={handleDelete} />
             ))}
           </AnimatePresence>

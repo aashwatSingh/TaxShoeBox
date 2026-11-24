@@ -100,7 +100,7 @@ export function PixelField() {
       }
       // Surface rings: the visible "drop" on water.
       for (const d of drops) {
-        const age = now - d.t
+        const age = Math.max(0, now - d.t)
         const life = 1 - age / WAVE_LIFE
         if (life <= 0) continue
         const r = age * WAVE_SPEED
@@ -145,7 +145,7 @@ export function PixelField() {
         // crest stays crisp while the pointer response stays soft.
         let wx = 0, wy = 0, wg = 0
         for (const dr of drops) {
-          const age = now - dr.t
+          const age = Math.max(0, now - dr.t)
           const front = age * WAVE_SPEED
           const ddx = x - dr.x, ddy = y - dr.y
           const dist = Math.sqrt(ddx * ddx + ddy * ddy) || 1
