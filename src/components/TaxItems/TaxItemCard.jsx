@@ -1,38 +1,22 @@
 import { forwardRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { Pencil, Trash2, Calendar, Tag, MoreHorizontal, Paperclip } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Pencil, Trash2, Paperclip } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import toast from 'react-hot-toast'
 import { storageService } from '../../services/storageService'
+import { moneyExact, typeMeta } from '../../utils/format'
+import { TypeChip, StatusChip } from '../UI/Primitives'
 
-const TYPE_STYLES = {
-  expense:   { cls: 'bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-300',           label: 'Expense'   },
-  income:    { cls: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300', label: 'Income' },
-  deduction: { cls: 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300',     label: 'Deduction' },
-  document:  { cls: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300',             label: 'Document'  },
-  other:     { cls: 'bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/15 dark:text-zinc-300',             label: 'Other'     },
-}
+const EASE = [0.16, 1, 0.3, 1]
 
-const STATUS_STYLES = {
-  pending:  'bg-gold-500/10 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400',
-  verified: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300',
-  flagged:  'bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-300',
-}
-
-function formatCurrency(n) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n)
-}
-
-export const TaxItemCard = forwardRef(function TaxItemCard({ item, onEdit, onDelete }, ref) {
-  const [menu, setMenu] = useState(false)
+export const TaxItemCard = forwardRef(function TaxItemCard({ item, index = 0, onEdit, onDelete }, ref) {
   const [opening, setOpening] = useState(false)
-  const type   = TYPE_STYLES[item.item_type] ?? TYPE_STYLES.other
-  const status = STATUS_STYLES[item.status]  ?? STATUS_STYLES.pending
+  const m = typeMeta(item.item_type)
   const hasReceipt = Boolean(item.receipt_url)
   const realReceipt = storageService.isReal(item.receipt_url)
 
   const viewReceipt = async () => {
-    if (!realReceipt) return // demo placeholder — nothing to open
+    if (!realReceipt) return // demo placeholder: nothing to open
     setOpening(true)
     try {
       const url = await storageService.signedUrl(item.receipt_url, 120)
@@ -46,121 +30,70 @@ export const TaxItemCard = forwardRef(function TaxItemCard({ item, onEdit, onDel
   }
 
   return (
-    <motion.div
+    <motion.article
       ref={ref}
       layout
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-      className="surface surface-hover relative p-4 group"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0, transition: { duration: 0.5, ease: EASE, delay: Math.min(index, 10) * 0.04 } }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.18 } }}
+      transition={{ layout: { duration: 0.45, ease: EASE } }}
+      data-lit={m.lit || ''}
+      className="group panel flex flex-col p-5"
     >
-      <div
-        className="absolute top-0 left-0 w-[3px] h-full rounded-l-xl"
-        style={{ background: item.categories?.color ?? '#6b7280' }}
-      />
-
-      <div className="pl-2.5">
-        {/* Header row */}
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-sm leading-snug truncate mb-0.5 text-zinc-900 dark:text-white">
-              {item.title}
-            </h3>
-            {item.categories && (
-              <span className="text-xs text-zinc-400 dark:text-white/35">{item.categories.name}</span>
-            )}
-          </div>
-
-          {/* Overflow menu */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => setMenu(p => !p)}
-              className="p-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-150
-                hover:bg-black/[0.05] text-zinc-400 dark:hover:bg-white/10 dark:text-white/50"
-            >
-              <MoreHorizontal size={15} />
-            </button>
-
-            <AnimatePresence>
-              {menu && (
-                <>
-                  <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -4 }}
-                    transition={{ duration: 0.12 }}
-                    className="surface-raised absolute right-0 top-7 z-20 w-32 p-1"
-                  >
-                    <button
-                      onClick={() => { setMenu(false); onEdit(item) }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors
-                        text-zinc-700 hover:bg-black/[0.04] dark:text-white/70 dark:hover:bg-white/10"
-                    >
-                      <Pencil size={13} /> Edit
-                    </button>
-                    <button
-                      onClick={() => { setMenu(false); onDelete(item) }}
-                      className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-md text-sm transition-colors
-                        text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
-                    >
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  </motion.div>
-                </>
-              )}
-            </AnimatePresence>
-          </div>
+      <div className="flex items-start justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-2 pt-1 text-xs text-faint">
+          <span className="h-2 w-2 shrink-0 rounded-[2px]" style={{ background: item.categories?.color ?? 'rgb(var(--faint))' }} />
+          <span className="truncate">{item.categories?.name ?? 'Uncategorized'}</span>
+        </span>
+        <div className="reveal-on-hover -mr-2 -mt-1.5 flex shrink-0 opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-within:opacity-100">
+          <button onClick={() => onEdit(item)} className="btn btn-ghost btn-icon" aria-label={`Edit ${item.title}`} title="Edit">
+            <Pencil size={14} />
+          </button>
+          <button onClick={() => onDelete(item)} className="btn btn-ghost btn-danger btn-icon" aria-label={`Delete ${item.title}`} title="Delete">
+            <Trash2 size={14} />
+          </button>
         </div>
+      </div>
 
-        {item.description && (
-          <p className="text-xs mb-2 line-clamp-2 text-zinc-500 dark:text-white/40">
-            {item.description}
-          </p>
-        )}
+      <h3 className="mt-2 line-clamp-2 text-[15px] font-semibold leading-snug text-ink [font-stretch:108%]">{item.title}</h3>
 
-        {item.amount != null && (
-          <p className="text-lg font-semibold mb-2.5 tabular-nums text-zinc-900 dark:text-white">
-            {formatCurrency(item.amount)}
-          </p>
-        )}
+      {item.amount != null && (
+        <p className={`display figure mt-3 text-[1.65rem] ${m.tone}`}>
+          <span className="mr-0.5 text-[0.7em] opacity-70">{m.sign}</span>{moneyExact(item.amount)}
+        </p>
+      )}
 
-        {/* Chips row */}
+      {item.description && (
+        <p className="mt-2 line-clamp-2 text-[13px] leading-relaxed text-muted">{item.description}</p>
+      )}
+
+      <div className="mt-auto pt-5">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className={`badge ${type.cls}`}>{type.label}</span>
-          <span className={`badge capitalize ${status}`}>{item.status}</span>
-
-          {item.item_date && (
-            <span className="flex items-center gap-1 text-xs text-zinc-400 dark:text-white/35">
-              <Calendar size={10} />
-              {format(parseISO(item.item_date), 'MMM d, yyyy')}
-            </span>
-          )}
-
-          {item.tags?.length > 0 && (
-            <span className="flex items-center gap-1 text-xs text-zinc-400 dark:text-white/35">
-              <Tag size={10} />
-              {item.tags.slice(0, 2).join(', ')}
-              {item.tags.length > 2 && ` +${item.tags.length - 2}`}
-            </span>
-          )}
-
+          <TypeChip type={item.item_type} />
+          <StatusChip status={item.status} />
           {hasReceipt && (
             <button
               type="button"
               onClick={viewReceipt}
               disabled={!realReceipt || opening}
               title={realReceipt ? 'View receipt' : 'Receipt attached (demo)'}
-              className={`badge gap-1 transition-opacity bg-gold-500/10 text-gold-700 dark:bg-gold-400/15 dark:text-gold-400
-                ${realReceipt ? 'hover:opacity-70 cursor-pointer' : 'cursor-default'}`}
+              className={`chip border-line-strong bg-ink/[0.03] text-muted disabled:cursor-default ${realReceipt ? 'hover:border-signal/50 hover:text-signal' : ''}`}
             >
               <Paperclip size={10} />
-              {opening ? 'Opening…' : realReceipt ? 'Receipt' : 'Receipt (demo)'}
+              {opening ? 'Opening…' : 'Receipt'}
             </button>
           )}
         </div>
+        <div className="mt-4 flex items-center justify-between gap-3 border-t border-line pt-3">
+          <span className="fact">{item.item_date ? format(parseISO(item.item_date), 'dd MMM yyyy').toUpperCase() : 'No date'}</span>
+          {item.tags?.length > 0 && (
+            <span className="fact truncate">
+              {item.tags.slice(0, 2).map((t) => `#${t}`).join(' ')}
+              {item.tags.length > 2 && ` +${item.tags.length - 2}`}
+            </span>
+          )}
+        </div>
       </div>
-    </motion.div>
+    </motion.article>
   )
 })

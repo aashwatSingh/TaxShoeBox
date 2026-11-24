@@ -66,10 +66,9 @@ tax-shoebox/
 │   │   │   ├── TaxItemCard.jsx      Item card (forwardRef motion component)
 │   │   │   └── TaxItemForm.jsx      Create/edit modal + receipt upload
 │   │   ├── Layout/                  Navbar + page frame + footer
-│   │   └── UI/                      ThemeToggle, spinners, ErrorBoundary
+│   │   └── UI/                      Brand mark, shared primitives, loader, ErrorBoundary
 │   ├── context/
 │   │   ├── AuthContext.jsx          Session state (real + demo + none)
-│   │   └── ThemeContext.jsx         Dark/light, persisted, system default
 │   ├── hooks/
 │   │   └── useTaxItems.js           useTaxItems / useCategories / useTaxSummary
 │   ├── services/

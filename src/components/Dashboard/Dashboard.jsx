@@ -1,183 +1,212 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  TrendingDown, TrendingUp, Receipt, Clock, Plus, ArrowRight, ChevronDown
-} from 'lucide-react'
+import { motion } from 'framer-motion'
+import { Plus, ArrowUpRight, ShieldCheck } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { useAuth } from '../../context/AuthContext'
 import { useTaxSummary, useTaxItems } from '../../hooks/useTaxItems'
 import { TaxItemForm } from '../TaxItems/TaxItemForm'
-import { SkeletonCard } from '../UI/LoadingSpinner'
+import { Counter, YearStepper, TypeChip, Ticks } from '../UI/Primitives'
+import { money, typeMeta } from '../../utils/format'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEARS = Array.from({ length: 6 }, (_, i) => CURRENT_YEAR - i)
+const EASE = [0.16, 1, 0.3, 1]
 
-function formatCurrency(n) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n ?? 0)
+function greeting() {
+  const h = new Date().getHours()
+  return h < 5 ? 'Working late' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 }
 
-function StatCard({ label, value, sub, icon: Icon, tint }) {
-  return (
-    <div className="surface surface-hover p-4">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-3 ${tint}`}>
-        <Icon size={15} />
-      </div>
-      <p className="text-xl font-semibold text-zinc-900 dark:text-white mb-0.5 tabular-nums">{value}</p>
-      <p className="text-sm text-zinc-500 dark:text-white/50">{label}</p>
-      {sub && <p className="text-xs mt-0.5 text-zinc-400 dark:text-white/30">{sub}</p>}
-    </div>
-  )
-}
-
-function ItemTypeChip({ type }) {
-  const map = {
-    expense:   { label: 'Expense',   cls: 'bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-300' },
-    income:    { label: 'Income',    cls: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300' },
-    deduction: { label: 'Deduction', cls: 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300' },
-    document:  { label: 'Document',  cls: 'bg-blue-500/10 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300' },
-    other:     { label: 'Other',     cls: 'bg-zinc-500/10 text-zinc-600 dark:bg-zinc-500/15 dark:text-zinc-300' },
-  }
-  const m = map[type] ?? map.other
-  return <span className={`badge ${m.cls}`}>{m.label}</span>
-}
-
-export function Dashboard() {
-  const { user }               = useAuth()
-  const [year, setYear]        = useState(CURRENT_YEAR)
-  const [showForm, setShowForm] = useState(false)
-  const { summary, loading: sLoading } = useTaxSummary(year)
-  const { items, loading: iLoading, createItem } = useTaxItems({ taxYear: year, pageSize: 6 })
-
-  const name = user?.isDemo ? 'Explorer' : user?.email?.split('@')[0] ?? 'there'
-  const hour = new Date().getHours()
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
-
-  const stats = [
-    { label: 'Total Items',    value: summary?.totalItems ?? 0,            icon: Receipt,     tint: 'bg-zinc-900/5 text-zinc-700 dark:bg-white/10 dark:text-white', sub: `Tax year ${year}` },
-    { label: 'Total Expenses', value: formatCurrency(summary?.expenses),   icon: TrendingDown, tint: 'bg-red-500/10 text-red-600 dark:bg-red-500/15 dark:text-red-300', sub: 'Logged expenses' },
-    { label: 'Total Income',   value: formatCurrency(summary?.income),     icon: TrendingUp,   tint: 'bg-emerald-500/10 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300', sub: 'Reported income' },
-    { label: 'Deductions',     value: formatCurrency(summary?.deductions), icon: TrendingDown, tint: 'bg-violet-500/10 text-violet-600 dark:bg-violet-500/15 dark:text-violet-300', sub: 'Potential savings' },
+/** Net position, a proportional balance bar and its legend. */
+function Ledger({ summary, year, loading }) {
+  const income = summary?.income ?? 0
+  const expenses = summary?.expenses ?? 0
+  const deductions = summary?.deductions ?? 0
+  const net = income - expenses
+  const total = income + expenses + deductions
+  const rows = [
+    { key: 'income',    label: 'Income',     value: income,     bar: 'bg-income' },
+    { key: 'expense',   label: 'Expenses',   value: expenses,   bar: 'bg-expense' },
+    { key: 'deduction', label: 'Deductions', value: deductions, bar: 'bg-deduct' },
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-white mb-0.5">
-            {greeting}, {name}
-          </h1>
-          <p className="text-sm text-zinc-400 dark:text-white/40">Here's your tax overview</p>
-        </div>
-
-        <div className="flex items-center gap-2.5">
-          <div className="relative">
-            <select
-              value={year}
-              onChange={e => setYear(Number(e.target.value))}
-              className="select bg-white dark:bg-white/[0.06] border-black/[0.08] dark:border-white/[0.1] py-2"
-            >
-              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
-            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-400 dark:text-white/40" />
-          </div>
-
-          <button onClick={() => setShowForm(true)} className="btn-primary flex items-center gap-1.5">
-            <Plus size={15} />
-            Add Item
-          </button>
-        </div>
+    <section data-lit className="ticks panel p-5 sm:p-7 lg:col-span-2" aria-labelledby="net-label">
+      <Ticks />
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
+        <h2 id="net-label" className="label-wide">Net position · {year}</h2>
+        <span className="fact">income − expenses</span>
       </div>
 
-      {/* Stats grid */}
-      {sLoading ? (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {stats.map((s) => <StatCard key={s.label} {...s} />)}
-        </div>
-      )}
+      <p className={`display figure mt-4 text-[clamp(2.4rem,7vw,4.25rem)] ${net < 0 ? 'text-expense' : 'text-ink'}`}>
+        {loading ? <span className="skeleton inline-block h-[0.8em] w-[5ch] align-middle" /> : (
+          <>
+            <span className="mr-1 text-faint">{net < 0 ? '−' : ''}</span>
+            <Counter value={Math.abs(net)} format={money} />
+          </>
+        )}
+      </p>
+      <p className="mt-2 max-w-[52ch] text-sm leading-relaxed text-muted">
+        {total === 0
+          ? 'Nothing recorded for this year yet.'
+          : <>Income of <span className="text-ink">{money(income)}</span> less <span className="text-ink">{money(expenses)}</span> of expenses, with <span className="text-ink">{money(deductions)}</span> set aside as deductions.</>}
+      </p>
 
-      {/* Pending review banner */}
-      {summary?.pending > 0 && (
-        <div className="flex items-center justify-between px-4 py-3 rounded-lg border
-          bg-gold-500/[0.06] border-gold-500/20 text-gold-700
-          dark:bg-gold-400/[0.08] dark:border-gold-400/20 dark:text-gold-400"
-        >
-          <div className="flex items-center gap-2.5">
-            <Clock size={15} />
-            <span className="text-sm font-medium">
-              {summary.pending} item{summary.pending !== 1 ? 's' : ''} pending review
-            </span>
+      {/* Balance bar: each segment's width is its share of everything recorded. */}
+      <div className="mt-7 flex h-2 w-full gap-[3px] overflow-hidden rounded-full bg-ink/[0.05]" role="img"
+        aria-label={rows.map((r) => `${r.label} ${money(r.value)}`).join(', ')}>
+        {total > 0 && rows.map((r, i) => r.value > 0 && (
+          <span key={r.key} className={`${r.bar} animate-grow-x h-full first:rounded-l-full last:rounded-r-full`}
+            style={{ width: `${(r.value / total) * 100}%`, animationDelay: `${0.15 + i * 0.12}s` }} />
+        ))}
+      </div>
+
+      <dl className="mt-5 grid grid-cols-1 gap-x-8 gap-y-3 sm:grid-cols-3">
+        {rows.map((r) => (
+          <div key={r.key} className="flex items-baseline justify-between gap-3 border-t border-line pt-3 sm:block">
+            <dt className="flex items-center gap-2 text-[13px] text-muted">
+              <span className={`h-1.5 w-1.5 rounded-full ${r.bar}`} />{r.label}
+              <span className="fact ml-auto sm:ml-1">{total ? Math.round((r.value / total) * 100) : 0}%</span>
+            </dt>
+            <dd className="figure text-lg font-semibold text-ink sm:mt-1.5 sm:text-xl">
+              {loading ? '—' : <Counter value={r.value} format={money} />}
+            </dd>
           </div>
-          <Link to="/items" className="text-xs font-semibold flex items-center gap-1 hover:opacity-70 transition-opacity">
-            Review <ArrowRight size={12} />
+        ))}
+      </dl>
+    </section>
+  )
+}
+
+/** Share of the year's records that are verified, as a ring meter. */
+function ReviewMeter({ summary, loading }) {
+  const total = summary?.totalItems ?? 0
+  const pending = summary?.pending ?? 0
+  const done = Math.max(0, total - pending)
+  const share = total ? done / total : 0
+  const R = 46, C = 2 * Math.PI * R
+
+  return (
+    <section data-lit="pending" className="panel flex flex-col p-5 sm:p-7" aria-labelledby="review-label">
+      <div className="flex items-baseline justify-between">
+        <h2 id="review-label" className="label-wide">Review</h2>
+        <span className="fact">{total} record{total === 1 ? '' : 's'}</span>
+      </div>
+      <div className="mt-5 flex items-center gap-6">
+        <svg viewBox="0 0 110 110" className="h-24 w-24 shrink-0 -rotate-90" aria-hidden>
+          <circle cx="55" cy="55" r={R} fill="none" stroke="rgb(var(--ink) / 0.07)" strokeWidth="5" />
+          <motion.circle
+            cx="55" cy="55" r={R} fill="none" stroke="rgb(var(--income))" strokeWidth="5" strokeLinecap="round"
+            strokeDasharray={C}
+            initial={{ strokeDashoffset: C }}
+            animate={{ strokeDashoffset: loading ? C : C * (1 - share) }}
+            transition={{ duration: 1.2, ease: EASE, delay: 0.2 }}
+            style={{ filter: 'drop-shadow(0 0 4px rgb(var(--income) / 0.6))' }}
+          />
+        </svg>
+        <div>
+          <p className="display figure text-4xl text-ink"><Counter value={Math.round(share * 100)} />%</p>
+          <p className="mt-1 text-sm text-muted">verified</p>
+        </div>
+      </div>
+      <div className="mt-auto pt-6">
+        {pending > 0 ? (
+          <Link to="/items" className="btn btn-outline w-full justify-between">
+            <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-pending shadow-[0_0_6px_rgb(var(--pending))]" />{pending} waiting for review</span>
+            <ArrowUpRight size={15} />
           </Link>
-        </div>
-      )}
-
-      {/* Recent items */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-zinc-900 dark:text-white">Recent Items</h2>
-          <Link to="/items" className="text-accent text-sm flex items-center gap-1 font-medium hover:opacity-70 transition-opacity">
-            View all <ArrowRight size={13} />
-          </Link>
-        </div>
-
-        {iLoading ? (
-          <div className="space-y-2.5">
-            {[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}
-          </div>
-        ) : items.length === 0 ? (
-          <div className="surface p-10 text-center">
-            <p className="text-3xl mb-3">📂</p>
-            <p className="font-medium mb-1 text-zinc-600 dark:text-white/60">No items for {year}</p>
-            <p className="text-sm mb-5 text-zinc-400 dark:text-white/30">
-              Start adding receipts, invoices, and documents
-            </p>
-            <button onClick={() => setShowForm(true)} className="btn-primary inline-flex items-center gap-1.5">
-              <Plus size={15} /> Add First Item
-            </button>
-          </div>
         ) : (
-          <div className="surface overflow-hidden divide-y divide-black/[0.05] dark:divide-white/[0.05]">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-4 px-4 py-3 transition-colors duration-150
-                  hover:bg-black/[0.02] dark:hover:bg-white/[0.03]"
-              >
-                <div
-                  className="w-2 h-2 rounded-full shrink-0"
-                  style={{ background: item.categories?.color ?? '#6b7280' }}
-                />
-
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate text-zinc-900 dark:text-white">
-                    {item.title}
-                  </p>
-                  <p className="text-xs text-zinc-400 dark:text-white/35">
-                    {item.categories?.name ?? 'Uncategorized'}
-                    {item.item_date && ` · ${format(parseISO(item.item_date), 'MMM d, yyyy')}`}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3 shrink-0">
-                  <ItemTypeChip type={item.item_type} />
-                  {item.amount != null && (
-                    <span className="text-sm font-medium tabular-nums text-zinc-900 dark:text-white">
-                      {formatCurrency(item.amount)}
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="flex items-center gap-2 text-sm text-income"><ShieldCheck size={15} /> Everything is verified</p>
         )}
       </div>
+    </section>
+  )
+}
+
+function Recent({ items, loading, year, onAdd }) {
+  return (
+    <section className="panel overflow-hidden" aria-labelledby="recent-label">
+      <div className="flex items-center justify-between px-5 pb-3 pt-5 sm:px-7">
+        <h2 id="recent-label" className="label-wide">Recent entries</h2>
+        <Link to="/items" className="group flex items-center gap-1 text-[13px] font-medium text-muted transition-colors hover:text-signal">
+          Open ledger <ArrowUpRight size={14} className="transition-transform duration-300 ease-out group-hover:-translate-y-0.5 group-hover:translate-x-0.5" />
+        </Link>
+      </div>
+
+      {loading ? (
+        <div className="space-y-px px-5 pb-5 sm:px-7">{[0, 1, 2, 3].map((i) => <div key={i} className="skeleton h-12" />)}</div>
+      ) : items.length === 0 ? (
+        <div className="px-5 pb-10 pt-6 text-center sm:px-7">
+          <p className="display text-lg text-ink">Nothing filed for {year}</p>
+          <p className="mx-auto mt-2 max-w-[40ch] text-sm text-muted">Add a receipt, an invoice or a tax form and it lands here.</p>
+          <button onClick={onAdd} className="btn btn-primary mt-6"><Plus size={15} /> Add the first entry</button>
+        </div>
+      ) : (
+        <ul className="border-t border-line">
+          {items.map((item, i) => {
+            const m = typeMeta(item.item_type)
+            return (
+              <motion.li
+                key={item.id}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, ease: EASE, delay: 0.05 + i * 0.045 }}
+                data-lit={m.lit || ''}
+                className="grid grid-cols-[3.25rem_1fr_auto] items-center gap-x-4 border-b border-line px-5 py-3.5 last:border-b-0 sm:grid-cols-[4rem_1fr_auto_7rem] sm:px-7"
+              >
+                <span className="font-mono text-[11px] uppercase leading-tight text-faint">
+                  {item.item_date ? <>{format(parseISO(item.item_date), 'MMM')}<br /><span className="text-[15px] text-muted">{format(parseISO(item.item_date), 'dd')}</span></> : '—'}
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-medium text-ink">{item.title}</span>
+                  <span className="mt-0.5 flex items-center gap-1.5 truncate text-xs text-faint">
+                    <span className="h-1.5 w-1.5 shrink-0 rounded-[2px]" style={{ background: item.categories?.color ?? 'rgb(var(--faint))' }} />
+                    {item.categories?.name ?? 'Uncategorized'}
+                  </span>
+                </span>
+                <span className="hidden sm:block"><TypeChip type={item.item_type} /></span>
+                <span className={`figure text-right text-sm font-semibold ${item.amount == null ? 'text-faint' : m.tone}`}>
+                  {item.amount == null ? 'Doc' : `${m.sign}${money(item.amount)}`}
+                </span>
+              </motion.li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
+export function Dashboard() {
+  const { user }  = useAuth()
+  const [year, setYear] = useState(CURRENT_YEAR)
+  const [showForm, setShowForm] = useState(false)
+  const { summary, loading: sLoading } = useTaxSummary(year)
+  const { items, loading: iLoading, createItem } = useTaxItems({ taxYear: year, pageSize: 6 })
+  const name = user?.isDemo ? 'Explorer' : user?.email?.split('@')[0] ?? 'there'
+
+  return (
+    <div className="space-y-6 sm:space-y-8">
+      <header className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-sm text-muted">{greeting()}, {name}.</p>
+          <h1 className="display mt-2 text-[clamp(1.9rem,4.4vw,2.75rem)] text-ink">Your tax year at a glance</h1>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <YearStepper year={year} years={YEARS} onChange={setYear} />
+          <button onClick={() => setShowForm(true)} className="btn btn-primary flex-1 sm:flex-none">
+            <Plus size={15} /> Add entry
+          </button>
+        </div>
+      </header>
+
+      <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
+        <Ledger summary={summary} year={year} loading={sLoading} />
+        <ReviewMeter summary={summary} loading={sLoading} />
+      </div>
+
+      <Recent items={items} loading={iLoading} year={year} onAdd={() => setShowForm(true)} />
 
       {showForm && (
         <TaxItemForm

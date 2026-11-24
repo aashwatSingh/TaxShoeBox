@@ -30,17 +30,15 @@ export class ErrorBoundary extends Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="bg-app min-h-screen flex flex-col items-center justify-center px-4 text-center">
-          <div className="surface max-w-md w-full p-8">
-            <div className="text-4xl mb-4">🗂️</div>
-            <h1 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
-              Something went wrong
-            </h1>
-            <p className="text-sm text-zinc-500 dark:text-white/50 mb-6">
+        <div className="flex min-h-dvh flex-col items-center justify-center bg-void px-4 text-center">
+          <div className="panel w-full max-w-md p-8">
+            <p className="label-wide">Error</p>
+            <h1 className="display mt-3 text-2xl text-ink">Something went wrong</h1>
+            <p className="mt-2 text-sm text-muted">
               An unexpected error occurred. Reloading usually fixes it.
             </p>
-            <button onClick={this.handleReset} className="btn-primary w-full">
-              Back to safety
+            <button onClick={this.handleReset} className="btn btn-primary mt-6 w-full">
+              Back to the overview
             </button>
           </div>
         </div>
