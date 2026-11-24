@@ -5,7 +5,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-const SECURITY_HEADERS = {
+const BASE_HEADERS = {
   // Prevent the page being framed by another origin (clickjacking)
   'X-Frame-Options': 'DENY',
   // Stop browsers guessing content types (MIME-sniffing attacks)
@@ -27,8 +27,17 @@ const SECURITY_HEADERS = {
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "object-src 'none'",
     "frame-ancestors 'none'",
   ].join('; '),
+}
+
+// `vite preview` serves the production build, so it gets the same strict
+// CSP as vercel.json (no 'unsafe-inline' scripts, which only dev HMR needs).
+const PREVIEW_HEADERS = {
+  ...BASE_HEADERS,
+  'Content-Security-Policy': BASE_HEADERS['Content-Security-Policy']
+    .replace("script-src 'self' 'unsafe-inline' blob:", "script-src 'self'"),
 }
 
 export default defineConfig({
@@ -40,10 +49,10 @@ export default defineConfig({
     },
   },
   server: {
-    headers: SECURITY_HEADERS,
+    headers: BASE_HEADERS,
   },
   preview: {
-    headers: SECURITY_HEADERS,
+    headers: PREVIEW_HEADERS,
   },
   build: {
     // Split large dependencies into separate, independently-cacheable

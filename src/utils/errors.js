@@ -13,7 +13,7 @@ const PATTERNS = [
   { re: /jwt expired|token is expired/i,             msg: 'Your session has expired. Please sign in again.' },
   { re: /invalid login credentials/i,                msg: 'Incorrect email or password.' },
   { re: /email not confirmed/i,                      msg: 'Please confirm your email address first.' },
-  { re: /user already registered/i,                  msg: 'An account with that email already exists.' },
+  { re: /user already registered/i,                  msg: 'Check your email to confirm your account.' }, // never reveal whether an address is registered
   { re: /password should be at least/i,              msg: 'Password must be at least 8 characters, with upper/lowercase letters and a number.' },
   { re: /network|fetch|failed to fetch/i,            msg: 'Network error — please check your connection.' },
   { re: /permission denied|rls|policy/i,             msg: 'You do not have permission to do that.' },

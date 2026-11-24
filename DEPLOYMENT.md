@@ -47,11 +47,19 @@ Set these environment variables on your host (build-time, `VITE_`-prefixed):
 Build settings (auto-detected on most hosts):
 - **Build command:** `npm run build`
 - **Output directory:** `dist`
-- **Node version:** 20 (pinned via `.nvmrc`)
+- **Node version:** 20.19+ (pinned via `.nvmrc`; Vite 7 requires it)
 
 ### Vercel
 `vercel.json` is included (SPA rewrites, security headers, asset caching).
 Import the repo, add the two env vars, deploy.
+
+**Demo-only deploy (no Supabase needed):** import the repo and deploy with
+**no** environment variables. Sign-in is disabled and the "Explore the
+demo" button opens a fully client-side sandbox with sample data, kept in
+the visitor's own tab (`sessionStorage`). Nothing is sent anywhere, so
+visitors can't see or change each other's data. Note that Vercel
+**preview** deployments sit behind Vercel login by default; share the
+**production** URL, or turn off Deployment Protection for previews.
 
 ### Netlify / Cloudflare Pages
 `public/_redirects` (SPA fallback) and `public/_headers` (security + caching)

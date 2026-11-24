@@ -139,17 +139,42 @@ mode — real sign-in is disabled with a friendly message.
 
 ## 4b. Dependency audit status
 
-Last audited: July 2026 (`npm audit`).
+Last audited: November 2026 (`npm audit`): **0 vulnerabilities.**
 
-- **Fixed:** react-router open-redirect (GHSA-2j2x-hqr9-3h42) — patched via
-  `npm audit fix`. The app was never actually exposed (all redirects are
-  hard-coded paths, none user-controlled), but the patch was free.
-- **Accepted (dev-only):** the remaining advisories (esbuild dev-server CORS,
-  vite path-traversal / fs.deny bypass / launch-editor NTLM) affect **only
-  the local `npm run dev` server** — never the production build, which is
-  static files. The fix requires a breaking vite 5→8 major upgrade; do it as
-  a follow-up, not a pre-deploy change. Until then: don't run the dev server
-  while browsing untrusted sites.
+- react-router-dom 6 → 7.18 (open redirect via backslash, GHSA-wrjc-x8rr-h8h6).
+  The app already ran with the v7 future flags, so no code changed.
+- vite 5 → 7.3 and @vitejs/plugin-react 4 → 5, which clears the dev-server
+  advisories (esbuild CORS, vite fs.deny bypass) that were accepted in July.
+  Vite 7 needs Node 20.19+, so `.nvmrc` and `engines` were raised.
+- postcss / postcss-selector-parser / source-map-js patched via `npm audit fix`.
+
+## 4c. November 2026 audit — findings and fixes
+
+Each database finding was reproduced against Postgres 16 with two users
+(A attacking B) before and after `supabase/migrations/20261124120000_harden_ownership.sql`.
+
+| # | Severity | Finding | Fix |
+|---|----------|---------|-----|
+| 1 | High (broken feature) | `user_id` had no default and the client never sends it, so **every insert from the app failed** the RLS check. | `user_id DEFAULT auth.uid()` on both tables. The server sets the owner; the client is never trusted to. |
+| 2 | Medium | A user could attach their items to **another user's category id**. The FK only checked that the id exists, and FK errors let you probe which ids exist. | INSERT/UPDATE policies require the category to belong to `auth.uid()`; existing cross-tenant links are nulled. |
+| 3 | Low | `receipt_url` accepted any path, including another user's Storage folder. (Storage RLS still blocked the actual read.) | Policies require `receipt_url` to start with `<auth.uid()>/`. |
+| 4 | Low | `handle_updated_at()` ran as SECURITY DEFINER for no reason; trigger functions were executable by API roles. | Switched to SECURITY INVOKER; EXECUTE revoked from `public`, `anon`, `authenticated`. |
+| 5 | Low | Search sanitizer let `"`, `:`, `%` and `*` through into the PostgREST `or=` filter (wildcard / quoting tricks, own rows only). | Those characters are now stripped too. |
+| 6 | Low | Sign-up said "An account with that email already exists" (account enumeration). | Generic "check your email" message. |
+| 7 | Hardening | CSP had no `object-src`; `vite preview` used the dev CSP with `'unsafe-inline'` scripts. | Added `object-src 'none'` and `upgrade-insecure-requests`; preview now uses the production CSP. |
+
+**Checked and found sound:** no secrets in git history; the service_role
+guard; anon is denied every table and the RPC; users can't read, update,
+delete or re-assign each other's rows (verified); `get_tax_summary` is
+SECURITY INVOKER and scoped to `auth.uid()`; the receipts bucket is private
+with path-scoped RLS and no SVG uploads; no `dangerouslySetInnerHTML` or
+`eval`; there is no admin role, admin route or debug endpoint to abuse; an
+HTML payload in a title renders as text under the production CSP (verified
+in Chromium).
+
+**Applying to an existing Supabase project:** `supabase db push`, or paste
+the new migration file into the SQL Editor. A fresh project can still use
+`supabase/schema.sql`, which now includes it.
 
 ---
 

@@ -4,11 +4,19 @@
   "version": "1.0.0",
   "type": "module",
   "description": "TaxShoe — a sleek, secure full-stack app for organizing tax documents. React + Supabase with Row Level Security.",
-  "keywords": ["tax", "finance", "react", "supabase", "postgres", "rls", "vite"],
+  "keywords": [
+    "tax",
+    "finance",
+    "react",
+    "supabase",
+    "postgres",
+    "rls",
+    "vite"
+  ],
   "license": "MIT",
   "homepage": "https://taxshoe.app",
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19"
   },
   "scripts": {
     "dev": "vite",
@@ -23,13 +31,13 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
-    "react-router-dom": "^6.26.2"
+    "react-router-dom": "^7.18.7"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
+    "@vitejs/plugin-react": "^5.2.0",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.44",
     "tailwindcss": "^3.4.10",
-    "vite": "^5.4.3"
+    "vite": "^7.3.8"
   }
 }

@@ -48,12 +48,14 @@ function assertYear(year) {
 /**
  * Strip PostgREST filter-syntax characters from a user-supplied search
  * string to prevent filter-injection via the .or() clause.
- * Characters removed: comma, parentheses, backslash, null bytes.
- * Also enforced: max 120 chars.
+ * Characters removed: comma, parentheses, backslash, period, double
+ * quote (PostgREST value quoting), colon, null bytes, and the LIKE
+ * wildcards % and * (PostgREST treats * as %), so a search can't turn
+ * into a match-everything pattern. Also enforced: max 120 chars.
  */
 function sanitizeSearch(s) {
   return String(s)
-    .replace(/[,()\\.\x00]/g, '')
+    .replace(/[,()\\.\x00"*%:]/g, '')
     .slice(0, 120)
     .trim()
 }
